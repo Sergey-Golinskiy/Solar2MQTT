@@ -21,6 +21,9 @@ https://github.com/softwarecrash/Solar2MQTT
 #include <DallasTemperature.h>
 #endif
 
+#include <DHT.h>
+#include <DHT_U.h>
+
 PI_Serial mppClient(INVERTER_RX, INVERTER_TX);
 WiFiClient client;
 PubSubClient mqttclient(client);
@@ -38,6 +41,12 @@ uint8_t numOfTempSens;
 #endif
 
 #include "status-LED.h"
+
+// --- AM2301 (DHT21) ---
+#define AM2301_PIN D5
+#define AM2301_TYPE DHT21
+DHT dht(AM2301_PIN, AM2301_TYPE);
+unsigned long am2301Timer = 0;
 
 // new importetd
 char mqttClientId[80];
@@ -442,6 +451,9 @@ void setup()
     }
   }
 #endif
+// === AM2301 sensor init ===
+  dht.begin();
+  writeLog("AM2301 sensor initialized on D5.");
 }
 
 void loop()
@@ -621,6 +633,24 @@ bool sendtoMQTT()
       }
     }
 #endif
+  // --- AM2301 sensor publish ---
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature(); // °C
+
+  if (!isnan(humidity) && !isnan(temperature))
+  {
+    char valBuffer[8];
+    sprintf(msgBuffer1, "%s/AM2301_Temperature", settings.data.mqttTopic);
+    mqttclient.publish(msgBuffer1, dtostrf(temperature, 4, 1, valBuffer));
+
+    sprintf(msgBuffer1, "%s/AM2301_Humidity", settings.data.mqttTopic);
+    mqttclient.publish(msgBuffer1, dtostrf(humidity, 4, 1, valBuffer));
+  }
+  else
+  {
+    writeLog("AM2301 read error");
+  }
+
 // RAW
     mqttclient.publish(topicBuilder(buff, "RAW/Q1"), (mppClient.get.raw.q1).c_str());
     mqttclient.publish(topicBuilder(buff, "RAW/QPIGS"), (mppClient.get.raw.qpigs).c_str());
@@ -790,6 +820,50 @@ bool sendHaDiscovery()
     }
   }
 #endif
+  // --- AM2301 HA Discovery ---
+  String haDeviceDescriptionAM = String("\"dev\":") +
+      "{\"ids\":[\"" + mqttClientId + "\"]," +
+      "\"name\":\"" + settings.data.deviceName + "\"," +
+      "\"cu\":\"http://" + WiFi.localIP().toString() + "\"," +
+      "\"mdl\":\"Solar2MQTT\"," +
+      "\"mf\":\"SoftWareCrash\"," +
+      "\"sw\":\"" + SOFTWARE_VERSION + "\"" +
+      "}";
+
+  // Temperature
+  String haPayloadT = String("{") +
+      "\"name\":\"AM2301 Temperature\"," +
+      "\"stat_t\":\"" + String(settings.data.mqttTopic) + "/AM2301_Temperature\"," +
+      "\"avty_t\":\"" + String(settings.data.mqttTopic) + "/Alive\"," +
+      "\"pl_avail\":\"true\",\"pl_not_avail\":\"false\"," +
+      "\"uniq_id\":\"" + String(mqttClientId) + ".AM2301_Temperature\"," +
+      "\"ic\":\"mdi:thermometer\"," +
+      "\"unit_of_meas\":\"°C\",\"dev_cla\":\"temperature\"," +
+      haDeviceDescriptionAM + "}";
+
+  mqttclient.beginPublish(
+      ("homeassistant/sensor/" + String(settings.data.mqttTopic) + "/AM2301_Temperature/config").c_str(),
+      haPayloadT.length(), true);
+  mqttclient.print(haPayloadT);
+  mqttclient.endPublish();
+
+  // Humidity
+  String haPayloadH = String("{") +
+      "\"name\":\"AM2301 Humidity\"," +
+      "\"stat_t\":\"" + String(settings.data.mqttTopic) + "/AM2301_Humidity\"," +
+      "\"avty_t\":\"" + String(settings.data.mqttTopic) + "/Alive\"," +
+      "\"pl_avail\":\"true\",\"pl_not_avail\":\"false\"," +
+      "\"uniq_id\":\"" + String(mqttClientId) + ".AM2301_Humidity\"," +
+      "\"ic\":\"mdi:water-percent\"," +
+      "\"unit_of_meas\":\"%\",\"dev_cla\":\"humidity\"," +
+      haDeviceDescriptionAM + "}";
+
+  mqttclient.beginPublish(
+      ("homeassistant/sensor/" + String(settings.data.mqttTopic) + "/AM2301_Humidity/config").c_str(),
+      haPayloadH.length(), true);
+  mqttclient.print(haPayloadH);
+  mqttclient.endPublish();
+
   return true;
 }
 
