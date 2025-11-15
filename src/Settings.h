@@ -127,11 +127,11 @@ private:
       strcpy(data.mqttServer, "");
       strcpy(data.mqttUser, "");
       strcpy(data.mqttPassword, "");
-      strcpy(data.mqttTopic, "Solar");
+      strcpy(data.mqttTopic, "Must");
       strcpy(data.mqttTriggerPath, "");
       data.deviceQuantity = 1;
       data.mqttPort = 0;
-      data.mqttRefresh = 300;
+      data.mqttRefresh = 5;
       data.mqttJson = false;
       data.webUIdarkmode = false;
       strcpy(data.httpUser, "");

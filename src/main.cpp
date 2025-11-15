@@ -857,7 +857,7 @@ bool sendHaDiscovery()
     // Temperature
     String haPayLoadT = String("{") +
                          "\"name\":\"AM2301 Temperature\"," +
-                         "\"stat_t\":\"" + String(settings.data.mqttTopic) + "/AM2301_Temperature\"," +
+                         "\"stat_t\":\"" + String(settings.data.mqttTopic) + "/EspData/AM2301_Temperature\"," +
                          "\"avty_t\":\"" + String(settings.data.mqttTopic) + "/Alive\"," +
                          "\"pl_avail\":\"true\"," +
                          "\"pl_not_avail\":\"false\"," +
@@ -879,7 +879,7 @@ bool sendHaDiscovery()
     // Humidity
     String haPayLoadH = String("{") +
                          "\"name\":\"AM2301 Humidity\"," +
-                         "\"stat_t\":\"" + String(settings.data.mqttTopic) + "/AM2301_Humidity\"," +
+                         "\"stat_t\":\"" + String(settings.data.mqttTopic) + "/EspData/AM2301_Humidity\"," +
                          "\"avty_t\":\"" + String(settings.data.mqttTopic) + "/Alive\"," +
                          "\"pl_avail\":\"true\"," +
                          "\"pl_not_avail\":\"false\"," +
